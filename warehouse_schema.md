@@ -1,161 +1,91 @@
-# Data Warehouse Schema: Retail Business
+# Warehouse Schema Design: Star Schema for Business Analytics
 
-## Business Context
-This data warehouse supports analytical reporting and business intelligence for a retail business. Key business processes include sales transactions, inventory management, customer analysis, and promotional effectiveness.
+## 1. Overview
+Based on the **Data Source Review**, this document outlines a Star Schema design optimized for a centralized Data Warehouse. This schema integrates internal operational data (CRM, ERP, IoT) with external market insights (APIs, Web Scraping) to provide a holistic view of business performance.
 
-## Architecture Overview
-- **Star Schema** with fact and dimension tables.
-- **Conformed dimensions** for consistency across fact tables.
-- **Slowly Changing Dimensions (SCD)** – Type 2 for Customer and Product dimensions to track history.
+## 2. Star Schema Architecture
+The schema follows a "Star" pattern with a central **Fact Table** containing quantitative metrics and surrounding **Dimension Tables** containing descriptive attributes.
 
----
+[Image of a star schema diagram for a retail business]
 
-## Fact Tables
+### 2.1 Fact Table: `Fact_Sales_Performance`
+This table captures transactional events enriched with environmental context (e.g., weather and market trends).
 
-### 1. FactSales
-Stores individual sales transaction lines.
-
-| Column Name | Data Type | Description |
-|-------------|-----------|-------------|
-| sales_key | BIGINT | Surrogate key (PK) |
-| transaction_id | VARCHAR(50) | Business transaction ID |
-| product_key | BIGINT | FK to DimProduct |
-| customer_key | BIGINT | FK to DimCustomer |
-| store_key | BIGINT | FK to DimStore |
-| date_key | INT | FK to DimDate (YYYYMMDD) |
-| promotion_key | BIGINT | FK to DimPromotion |
-| quantity_sold | INT | Number of units sold |
-| unit_price | DECIMAL(10,2) | Price per unit at time of sale |
-| discount_amount | DECIMAL(10,2) | Discount applied to line item |
-| sales_amount | DECIMAL(10,2) | Calculated: (quantity * unit_price) - discount |
-| cost_amount | DECIMAL(10,2) | Cost of goods sold for the line |
-
-**Grain:** One row per product line item per sales transaction.
+| Column Name | Data Type | Description | Source Reference |
+|:---|:---|:---|:---|
+| `Sale_ID` (PK) | BIGINT | Unique identifier for the transaction. | CRM / POS System |
+| `Date_Key` (FK) | INT | Link to `Dim_Date`. | Internal System |
+| `Customer_Key` (FK) | INT | Link to `Dim_Customer`. | CRM (Salesforce/HubSpot) |
+| `Product_Key` (FK) | INT | Link to `Dim_Product`. | ERP (SAP/Oracle) |
+| `Location_Key` (FK) | INT | Link to `Dim_Location`. | Internal / IoT Sensors |
+| `Employee_Key` (FK) | INT | Link to `Dim_Employee`. | Jira / Timesheets |
+| `External_Market_Key` (FK) | INT | Link to `Dim_External_Conditions`. | Third-Party APIs |
+| `Quantity` | INT | Number of units sold. | Transactional Database |
+| `Gross_Revenue` | DECIMAL | Total revenue before discounts. | Transactional Database |
+| `Net_Revenue` | DECIMAL | Revenue after discounts/returns. | Transactional Database |
+| `Customer_Sentiment_Score` | FLOAT | Derived sentiment from product reviews. | Web Scraping (External) |
 
 ---
 
-### 2. FactInventory
-Daily snapshot of inventory levels.
+## 3. Dimension Tables
 
-| Column Name | Data Type | Description |
-|-------------|-----------|-------------|
-| inventory_key | BIGINT | Surrogate key (PK) |
-| product_key | BIGINT | FK to DimProduct |
-| store_key | BIGINT | FK to DimStore |
-| date_key | INT | FK to DimDate |
-| opening_stock | INT | Quantity at start of day |
-| received_quantity | INT | Quantity received during day |
-| sold_quantity | INT | Quantity sold during day |
-| closing_stock | INT | Quantity at end of day |
-| stock_value | DECIMAL(12,2) | closing_stock * unit_cost |
+### 3.1 `Dim_Customer` (Internal + External Enrichment)
+A "Customer 360" view merging internal profile data with external social/demographic data.
 
-**Grain:** One row per product per store per day.
+| Column Name | Description | Source |
+|:---|:---|:---|
+| `Customer_Key` (PK) | Surrogate Key. | Internal |
+| `Customer_ID` | Original CRM ID. | CRM |
+| `Name` | Customer full name. | CRM |
+| `Segment` | Enterprise, SMB, or Consumer. | Internal Analysis |
+| `Social_Influence_Tier` | Category based on external presence. | LinkedIn/Twitter API |
+| `Credit_Score_Range` | Financial health indicator. | Data Marketplaces (Experian) |
 
----
+### 3.2 `Dim_Product` (Internal)
+Details regarding items sold, managed through the ERP system.
 
-## Dimension Tables
+| Column Name | Description | Source |
+|:---|:---|:---|
+| `Product_Key` (PK) | Surrogate Key. | Internal |
+| `SKU` | Stock Keeping Unit. | ERP |
+| `Category` | Electronics, Clothing, etc. | ERP |
+| `Unit_Cost` | Internal manufacturing/purchase cost. | ERP / Supply Chain |
+| `Supplier_Name` | Name of the primary vendor. | Partner Data |
 
-### 3. DimDate
-Standard time dimension.
+### 3.3 `Dim_Location` (Internal + IoT)
+Physical or digital sales points, including physical sensor data.
 
-| Column Name | Data Type | Description |
-|-------------|-----------|-------------|
-| date_key | INT | PK, YYYYMMDD format |
-| full_date | DATE | Actual calendar date |
-| year | INT | 4-digit year |
-| quarter | INT | 1-4 |
-| month | INT | 1-12 |
-| month_name | VARCHAR(20) | January, February… |
-| week_of_year | INT | 1-53 |
-| day_of_month | INT | 1-31 |
-| day_of_week | VARCHAR(10) | Monday, Tuesday… |
-| is_weekend | BOOLEAN | TRUE/FALSE |
-| is_holiday | BOOLEAN | TRUE/FALSE |
+| Column Name | Description | Source |
+|:---|:---|:---|
+| `Location_Key` (PK) | Surrogate Key. | Internal |
+| `Store_ID` | Branch or Digital Store ID. | POS System |
+| `City / Region` | Geographic location. | Internal |
+| `Warehouse_Temp_Avg` | Average temp during storage. | IoT Hardware Sensors |
+| `Foot_Traffic_Index` | Local area busy-ness. | Third-Party APIs |
 
-**Grain:** One row per calendar day.
+### 3.4 `Dim_External_Conditions` (External)
+Captures the "Why" behind performance fluctuations using external data.
 
----
-
-### 4. DimProduct (SCD Type 2)
-Product information including historical changes (e.g., category reassignments).
-
-| Column Name | Data Type | Description |
-|-------------|-----------|-------------|
-| product_key | BIGINT | Surrogate key (PK) |
-| product_id | VARCHAR(50) | Business product code (natural key) |
-| product_name | VARCHAR(255) | Display name |
-| brand | VARCHAR(100) | Brand name |
-| category | VARCHAR(100) | Product category |
-| subcategory | VARCHAR(100) | Product subcategory |
-| supplier_id | VARCHAR(50) | Supplier business ID |
-| unit_cost | DECIMAL(10,2) | Current or historical cost |
-| unit_price | DECIMAL(10,2) | Current or historical retail price |
-| valid_from | DATE | Start date of this record version |
-| valid_to | DATE | End date of this record version |
-| is_current | BOOLEAN | TRUE for active version |
-
-**Grain:** One row per product per version (when attributes change).
+| Column Name | Description | Source |
+|:---|:---|:---|
+| `Condition_Key` (PK) | Surrogate Key. | Internal |
+| `Weather_Event` | Rain, Snow, Heatwave. | Weather API |
+| `Competitor_Price_Index` | Market pricing vs Internal. | Web Scraping |
+| `Market_Volatility` | Financial market status. | Financial APIs |
 
 ---
 
-### 5. DimCustomer (SCD Type 2)
-Customer profile and demographics.
+## 4. Implementation Logic
+1.  **ETL/ELT Process**: 
+    -   Internal data is pulled via batch (SQL) or streaming (App Logs).
+    -   External data is fetched via REST APIs or Scrapers.
+2.  **Data Cleaning**: 
+    -   Address inconsistencies in schema changes (referenced in Source Review 2.2).
+    -   Validate external API data against internal totals (referenced in 3.2).
+3.  **Governance**: 
+    -   PII (Names, Emails) in `Dim_Customer` must be masked according to GDPR/CCPA.
 
-| Column Name | Data Type | Description |
-|-------------|-----------|-------------|
-| customer_key | BIGINT | Surrogate key (PK) |
-| customer_id | VARCHAR(50) | Business customer ID (natural key) |
-| full_name | VARCHAR(255) | Customer name |
-| email | VARCHAR(255) | Email address |
-| phone | VARCHAR(50) | Phone number |
-| city | VARCHAR(100) | City of residence |
-| state | VARCHAR(50) | State/province |
-| postal_code | VARCHAR(20) | Zip/postal code |
-| country | VARCHAR(100) | Country |
-| loyalty_tier | VARCHAR(20) | Bronze, Silver, Gold, Platinum |
-| acquisition_date | DATE | Date first purchase made |
-| valid_from | DATE | Start date of this record version |
-| valid_to | DATE | End date of this record version |
-| is_current | BOOLEAN | TRUE for active version |
-
-**Grain:** One row per customer per version.
-
----
-
-### 6. DimStore
-Physical store or online channel.
-
-| Column Name | Data Type | Description |
-|-------------|-----------|-------------|
-| store_key | BIGINT | Surrogate key (PK) |
-| store_id | VARCHAR(50) | Business store ID |
-| store_name | VARCHAR(255) | Name of store or online channel |
-| store_type | VARCHAR(50) | Physical, Online, Pop-up, etc. |
-| address | VARCHAR(255) | Street address |
-| city | VARCHAR(100) | City |
-| state | VARCHAR(50) | State/province |
-| region | VARCHAR(50) | Sales region (North, South, East, West) |
-| manager_name | VARCHAR(255) | Store manager |
-
-**Grain:** One row per store.
-
----
-
-### 7. DimPromotion
-Marketing and sales promotions.
-
-| Column Name | Data Type | Description |
-|-------------|-----------|-------------|
-| promotion_key | BIGINT | Surrogate key (PK) |
-| promotion_id | VARCHAR(50) | Business promotion ID |
-| promotion_name | VARCHAR(255) | e.g., "Black Friday 2025" |
-| promotion_type | VARCHAR(50) | Discount, BOGO, Free Shipping, etc. |
-| discount_percent | DECIMAL(5,2) | Percentage discount if applicable |
-| start_date | DATE | Promotion start date |
-| end_date | DATE | Promotion end date |
-
-**Grain:** One row per promotion.
-
----
-
-## Relationships Diagram (Conceptual)
+## 5. Summary of Integration
+This Star Schema directly addresses the **Hybrid/Derived Sources** identified in the data review. By linking the `Fact_Sales_Performance` table to both internal (Product, Employee) and external (Market Conditions) dimensions, the business can perform advanced correlations, such as:
+- *How did external weather events impact sales in locations where IoT sensors reported high warehouse humidity?*
+- *Is there a correlation between competitor pricing (Scraped) and our Net Revenue?*
