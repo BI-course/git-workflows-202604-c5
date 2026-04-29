@@ -20,6 +20,6 @@ It is a hybrid approach specifically designed to address privacy and data protec
 | Data Preservation        | Only transformed data stored          | Raw data is preserved in full             | Partially transformed data stored                     |
 | Primary Compliance Value | Ensures data is "clean" before storage| High auditability and lineage tracking    | Protects individual privacy by removing Personally Identifiable Information before storage           |
 
-echo "Project lead: Member 5 — responsible for governance and audit." >> README.md
-git add README.md
-git commit -m "Add governance author attribution to README"
+"Project lead: Member 4 — responsible for overall coordination." 
+
+"Project lead: Member 5 — responsible for governance and audit."
