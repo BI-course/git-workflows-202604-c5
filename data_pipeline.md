@@ -19,11 +19,7 @@ It is a hybrid approach specifically designed to address privacy and data protec
 |:--------------------------|:--------------------------------------|:------------------------------------------|:----------------------------------------------------------------------|
 | Data Preservation        | Only transformed data stored          | Raw data is preserved in full             | Partially transformed data stored                     |
 | Primary Compliance Value | Ensures data is "clean" before storage| High auditability and lineage tracking    | Protects individual privacy by removing Personally Identifiable Information before storage           |
-feature/lab-1/research-on-ETL-ELT-EtLT
 
+"Project lead: Member 4 — responsible for overall coordination." 
 
-echo "Project lead: Member 4 — responsible for overall coordination." >> README.md
-git add README.md
-git commit -m "Add project lead attribution to README"
-
-main
+"Project lead: Member 5 — responsible for governance and audit."
