@@ -28,3 +28,8 @@ Refer to the files in the order specified below for more details:
 | @RichardKituyi | Architected the `data_pipeline.md` file. |
 | @Bakhitarose | Research lead on data integration methodologies (**ETL**, **ELT**, and **EtLT**) specifically regarding industry legal compliance. |
 | @Arsenendimanya151311 | Authored `governance.md` focusing on data governance frameworks and PII (Personally Identifiable Information) access protocols. |
+<img width="1493" height="838" alt="Screenshot 2026-04-30 153752" src="https://github.com/user-attachments/assets/f731e820-79c5-4299-940b-69c25c91d27a" />
+<img width="1738" height="899" alt="Screenshot 2026-04-30 154555" src="https://github.com/user-attachments/assets/e5eba2d0-0163-4034-a44a-7b0d78189e68" />
+<img width="1487" height="967" alt="Screenshot 2026-04-30 155954" src="https://github.com/user-attachments/assets/41144190-f0c4-455a-8200-0217e0285dc4" />
+
+
